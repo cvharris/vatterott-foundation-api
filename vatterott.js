@@ -3,6 +3,7 @@
 const Bcrypt = require('bcrypt');
 const Hapi = require('hapi');
 const Basic = require('hapi-auth-basic');
+const routes = require('./src/routes');
 
 const server = new Hapi.Server();
 server.connection({ port: 4200 });
@@ -34,26 +35,10 @@ server.register(Basic, (err) => {
   }
 
   server.auth.strategy('simple', 'basic', { validateFunc: validate });
-  server.route({
-    method: 'GET',
-    path: '/admin',
-    config: {
-      auth: 'simple',
-      handler: function (request, reply) {
-        reply('hello, ' + request.auth.credentials.name);
-      }
-    }
-  });
-
-  server.route({
-    method: 'POST',
-    path: '/submit-application',
-    config: {
-      handler: function (request, reply) {
-        reply('application submitted!')
-      }
-    }
-  });
+  // Add all the routes within the routes folder
+  for (var route in routes) {
+  	server.route(routes[route]);
+  }
 
   server.start((err) => {
 
