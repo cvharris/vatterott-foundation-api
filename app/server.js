@@ -6,7 +6,7 @@ const good = require('good')
 // Log ops info very rarely when running locally. Time is in milliseconds.
 const monitoringInterval = process.env['ENV'] === 'prod' ? 60 * 1000 : 60 * 60 * 1000
 
-module.exports = function () {
+module.exports = function (log) {
 
   const users = {
     bill: {
@@ -74,7 +74,9 @@ module.exports = function () {
     ])
 
     yield server.start()
-    console.log('Server started.')
+    log.info('Server started:', {
+      uri: server.info.uri
+    })
   })()
 
   return server

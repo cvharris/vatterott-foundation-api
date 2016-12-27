@@ -2,8 +2,11 @@
 
 const winston = require('winston')
 
+const consoleLogger = new(winston.transports.Console)({
+  colorize: true
+})
 const logLevel = process.env['ENV'] === 'prod' ? 'info' : 'debug'
-const transports = []
+const transports = [consoleLogger]
 
 const logger = new(winston.Logger)({
   transports,

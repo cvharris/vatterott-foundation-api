@@ -8,15 +8,15 @@ const app = require('./package.json')
 
 co(function* () {
   const commandLineArgs = JSON.parse(JSON.stringify(process.argv))
-  
+
   plutoPath({
     path: appPath,
     extraBindings: (bind) => {
       bind('commandLineArgs').toInstance(commandLineArgs)
     }
   }).then(plutoModule => {
-    // TODO: add winston to logging
-    console.log(`Starting ${app.name}...`)
+    const log = plutoModule.get('log')
+    log.info(`Starting ${app.name}...`)
     plutoModule.eagerlyLoadAll()
   }).catch(err => {
     console.error(err.stack)
