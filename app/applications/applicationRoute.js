@@ -31,7 +31,8 @@ module.exports = function (server, applicationController) {
     config: {
       handler: ctrl.upload,
       payload: {
-        output: 'stream'
+        output: 'stream',
+        maxBytes: 1000000
       }
     }
   })
