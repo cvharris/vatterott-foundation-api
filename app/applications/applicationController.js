@@ -8,68 +8,50 @@ const _ = require('lodash')
 
 module.exports = function grantControllerFactory(Application, log) {
 
+  function loadFiles(fileDir, files) {
+    let data = []
+
+    files.forEach((file) => {
+      log.info(fs.statSync(path.join(fileDir, file)))
+      const fileStats = fs.statSync(path.join(fileDir, file))
+      const isDirectory = fileStats.isDirectory()
+      const ext = isDirectory ? path.extname(file) : null
+
+      data.push({
+        name: file,
+        created: fileStats.birthtime,
+        ext: ext,
+        isDirectory: isDirectory,
+        path: path.join(fileDir, file)
+      })
+    })
+
+    return data
+  }
+
   return {
 		list: co.wrap(list),
-    findByName: co.wrap(findByName),
+    download: co.wrap(download),
     deleteApplication: co.wrap(deleteApplication),
     upload: co.wrap(upload)
   }
 
   function* list(request, reply) {
-    // let queryParams = {}
-    //
-    // const applications = yield Application.find()
-    //
-    // return reply(applications)
-
     const fileDir = `${root}/grantApplications`
-    log.info('browsing:', {
-      fileDir: fileDir
-    })
-
     fs.readdir(fileDir, (err, files) => {
       if (err) {
         throw err
       }
 
-      let data = []
-
-      files.forEach((file) => {
-        try {
-          log.info('processing file', {
-            file: file
-          })
-
-          let isDirectory = fs.statSync(path.join(fileDir, file)).isDirectory()
-          if (isDirectory) {
-            data.push({
-              name: file,
-              isDirectory: true,
-              path: path.join(fileDir, file)
-            })
-          } else {
-            let ext = path.extname(file)
-
-            data.push({
-              name: file,
-              ext: ext,
-              isDirectory: false,
-              path: path.join(fileDir, file)
-            })
-          }
-        } catch(e) {
-          log.error(e)
-        }
-      })
-
-      data = _.sortBy(data, f => f.name)
+      let data = loadFiles(fileDir, files)
+      data = _.sortBy(data, f => f.created)
 
       reply(data)
     })
 	}
 
-  function* findByName(request, reply) {
-    reply('hello world')
+  function* download(request, reply) {
+    reply('downloading file')
   }
 
   function* deleteApplication(request, reply) {

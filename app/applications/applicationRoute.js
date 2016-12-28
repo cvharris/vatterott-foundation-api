@@ -15,7 +15,7 @@ module.exports = function (server, applicationController) {
     method: 'GET',
     path: `/${root}/{application_name}`,
     config: {
-      handler: ctrl.findByName
+      handler: ctrl.download
     }
   })
   server.route({
