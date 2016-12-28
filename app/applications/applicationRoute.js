@@ -29,7 +29,10 @@ module.exports = function (server, applicationController) {
     method: 'POST',
     path: `/${root}`,
     config: {
-      handler: ctrl.upload
+      handler: ctrl.upload,
+      payload: {
+        output: 'stream'
+      }
     }
   })
 }

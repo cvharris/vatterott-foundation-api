@@ -1,3 +1,5 @@
 node_modules
 .ftpconfig
 .ftpignore
+.DS_Store
+grantApplications
