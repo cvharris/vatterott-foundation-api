@@ -9,7 +9,7 @@
   "author": "Charles Harris <charlie.harris@wwt.com>",
   "license": "ISC",
   "dependencies": {
-    "bcrypt-nodejs" : "latest",
+    "bcrypt" : "latest",
     "boom": "^4.2.0",
     "co": "^4.6.0",
     "good": "^7.0.2",

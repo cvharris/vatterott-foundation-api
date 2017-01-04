@@ -1,7 +1,7 @@
 'use strict'
 
 const co = require('co')
-const bcrypt = require('bcrypt-nodejs')
+const bcrypt = require('bcrypt')
 const Boom = require('boom')
 const jwt = require('jsonwebtoken')
 const secret = require('../../config.js')
@@ -10,10 +10,13 @@ module.exports = function(User) {
 
   function hashPassword(password, cb) {
     // Generate a salt at level 10 strength
-    bcrypt.genSalt(10, (err, salt) => {
-      bcrypt.hash(password, salt, (err, hash) => {
-        return cb(err, hash);
-      });
+    console.log('generating password!', password);
+    bcrypt.hash(password, 10, (err, hash) => {
+      if (err) {
+        throw Boom.badImplementation(err)
+      }
+      console.log('just hashed the password!', hash);
+      return cb(err, hash);
     });
   }
 
@@ -54,18 +57,20 @@ module.exports = function(User) {
     let user = new User()
     user.email = request.payload.email
     user.admin = false
+    console.log('we have a user!', user)
     hashPassword(request.payload.password, (err, hash) => {
       if (err) {
         throw Boom.badRequest(err)
       }
       user.password = hash
+      console.log('about to save!', user)
       user.save((err, user) => {
         if (err) {
           throw Boom.badRequest(err)
         }
         const token = createToken(user)
         // If the user is saved successfully, issue a JWT
-        res(user).header({
+        reply(user).header({
           "Authorization": token
         }).code(201)
       });

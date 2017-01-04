@@ -46,7 +46,13 @@ module.exports = function(server, authController) {
     path: '/register',
     config: {
       auth: false,
-      handler: ctrl.register
+      handler: ctrl.register,
+      validate: {
+        payload: Joi.object({
+          email: Joi.string().email().required(),
+          password: Joi.string().required()
+        })
+      }
     }
   })
 }
