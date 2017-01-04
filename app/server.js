@@ -2,29 +2,23 @@
 
 const co = require('co')
 const good = require('good')
+const config = require('../config.js')
 
 // Log ops info very rarely when running locally. Time is in milliseconds.
 const monitoringInterval = process.env['ENV'] === 'prod' ? 60 * 1000 : 60 * 60 * 1000
 
 module.exports = function (log) {
 
-  const users = {
-    bill: {
-      username: 'bill',
-      password: 'CFVatterott1014',   // 'secret'
-      name: 'Administrator',
-      id: '1'
-    }
-  };
+  // bring your own validation function
+  const validate = function (decoded, request, callback) {
 
-  const validate = function (request, username, password, callback) {
-    const user = users[username];
-    if (!user) {
+    // do your checks to see if the person is valid
+    if (!decoded.id) {
       return callback(null, false);
     }
-
-    const isValid = password === user.password
-    callback(null, isValid, { id: user.id, name: user.name });
+    else {
+      return callback(null, true);
+    }
   };
 
   const Hapi = require('hapi');
@@ -44,14 +38,10 @@ module.exports = function (log) {
     }
   })
 
-  server.register(require('hapi-auth-basic'), (err) => {
-    server.auth.strategy('simple', 'basic', { validateFunc: validate })
-    server.auth.default('simple')
-  })
-
   co.wrap(function* () {
     yield server.register([
       require('inert'),
+      require('hapi-auth-jwt2'),
       require('vision'), {
         register: good,
         options: {
@@ -72,6 +62,14 @@ module.exports = function (log) {
         }
       }
     ])
+
+    server.auth.strategy('jwt', 'jwt', true, {
+      key: config.key,
+      validateFunc: validate,
+      verifyOptions: {
+        algorithms: [ 'HS256' ]
+      }
+    });
 
     yield server.start()
     log.info('Server started:', {

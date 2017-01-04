@@ -3,3 +3,4 @@ node_modules
 .ftpignore
 .DS_Store
 grantApplications
+config.js
