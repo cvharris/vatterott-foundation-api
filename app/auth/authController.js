@@ -46,7 +46,11 @@ module.exports = function(User) {
   }
 
   function* login(request, reply) {
-    reply('logged in!')
+    // If the user's password is correct, we can issue a token.
+    // If it was incorrect, the error will bubble up from the pre method
+    const token = createToken(request.pre.user)
+    // If the user is saved successfully, issue a JWT
+    reply(request.pre.user).header("Authorization", token).code(201)
   }
 
   function* logout(request, reply) {
@@ -57,13 +61,11 @@ module.exports = function(User) {
     let user = new User()
     user.email = request.payload.email
     user.admin = false
-    console.log('we have a user!', user)
     hashPassword(request.payload.password, (err, hash) => {
       if (err) {
         throw Boom.badRequest(err)
       }
       user.password = hash
-      console.log('about to save!', user)
       user.save((err, user) => {
         if (err) {
           throw Boom.badRequest(err)
@@ -75,6 +77,5 @@ module.exports = function(User) {
         }).code(201)
       });
     });
-    reply('user registered!')
   }
 }
