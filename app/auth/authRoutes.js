@@ -1,5 +1,6 @@
 'use strict';
 
+const co = require('co')
 const Joi = require('joi')
 const Boom = require('boom')
 const bcrypt = require('bcrypt')
@@ -7,24 +8,16 @@ const bcrypt = require('bcrypt')
 module.exports = function(server, authController, User) {
   const ctrl = authController
 
-  function verifyUniqueUser(request, reply) {
-    // Find an entry from the database that
-    // matches either the email or username
-    User.findOne({
-      email: request.payload.email
-    }, (err, user) => {
-      // Check whether the username or email
-      // is already taken and error out if so
-      if (user) {
-        if (user.email === request.payload.email) {
-          reply(Boom.badRequest('User with that e-mail already exists!'));
-          return;
-        }
+  function* verifyUniqueUser(request, reply) {
+    const user = yield User.findOne({email: request.payload.email}).exec()
+
+    if (user) {
+      if (user.email === request.payload.email) {
+        reply(Boom.badRequest('User with that e-mail already exists!'));
+        return;
       }
-      // If everything checks out, send the payload through
-      // to the route handler
-      reply(request.payload);
-    });
+    }
+    return reply(request.payload);
   }
 
   server.route({
@@ -33,23 +26,21 @@ module.exports = function(server, authController, User) {
     config: {
       auth: false,
       pre: [{
-        method: (request, reply) => {
+        method: co.wrap(function* (request, reply) {
           const password = request.payload.password;
 
-          User.findOne({
-            email: request.payload.email
-          }, (err, user) => {
-            if (!user) {
-              return reply(Boom.badRequest('No user with that e-mail'));
-            }
-            bcrypt.compare(password, user.password, (err, isValid) => {
-              if (isValid) {
-                return reply(user);
-              }
-              reply(Boom.badRequest('Incorrect password and e-mail!'));
-            })
-          })
-        },
+          const user = yield User.findOne({email: request.payload.email}).exec()
+
+          if (!user) {
+            return reply(Boom.badRequest('No user with that e-mail'))
+          }
+          const isValid = yield bcrypt.compare(password, user.password)
+
+          if (isValid) {
+            return reply(user)
+          }
+          return reply(Boom.badRequest('Incorrect password and e-mail!'))
+        }),
         assign: 'user'
       }],
       handler: ctrl.login
@@ -70,7 +61,7 @@ module.exports = function(server, authController, User) {
     config: {
       auth: false,
       pre: [
-        { method: verifyUniqueUser }
+        { method: co.wrap(verifyUniqueUser) }
       ],
       handler: ctrl.register,
       validate: {

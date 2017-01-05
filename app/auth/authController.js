@@ -8,23 +8,13 @@ const secret = require('../../config.js')
 
 module.exports = function(User) {
 
-  function hashPassword(password, cb) {
+  function* hashPassword(password) {
     // Generate a salt at level 10 strength
-    console.log('generating password!', password);
-    bcrypt.hash(password, 10, (err, hash) => {
-      if (err) {
-        throw Boom.badImplementation(err)
-      }
-      console.log('just hashed the password!', hash);
-      return cb(err, hash);
-    });
+    return yield bcrypt.hash(password, 10)
   }
 
   function createToken(user) {
     let scopes
-    // Check if the user object passed in
-    // has admin set to true, and if so, set
-    // scopes to admin
     if (user.admin) {
       scopes = 'admin'
     }
@@ -50,7 +40,7 @@ module.exports = function(User) {
     // If it was incorrect, the error will bubble up from the pre method
     const token = createToken(request.pre.user)
     // If the user is saved successfully, issue a JWT
-    reply(request.pre.user).header("Authorization", token).code(201)
+    return reply(request.pre.user).header("Authorization", token).code(201)
   }
 
   function* logout(request, reply) {
@@ -61,21 +51,16 @@ module.exports = function(User) {
     let user = new User()
     user.email = request.payload.email
     user.admin = false
-    hashPassword(request.payload.password, (err, hash) => {
-      if (err) {
-        throw Boom.badRequest(err)
-      }
-      user.password = hash
-      user.save((err, user) => {
-        if (err) {
-          throw Boom.badRequest(err)
-        }
-        const token = createToken(user)
-        // If the user is saved successfully, issue a JWT
-        reply(user).header({
-          "Authorization": token
-        }).code(201)
-      });
-    });
+    let hash = yield hashPassword(request.payload.password)
+
+    if (!hash) {
+      throw Boom.badRequest('password failed to hash!')
+    }
+    user.password = hash
+    yield user.save()
+
+    const token = createToken(user)
+    // If the user is saved successfully, issue a JWT
+    return reply(user).header("Authorization", token).code(201)
   }
 }
