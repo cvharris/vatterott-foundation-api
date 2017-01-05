@@ -20,35 +20,43 @@ module.exports = function(server, authController, User) {
     return reply(request.payload);
   }
 
+  function* logInUser(request, reply) {
+    const password = request.payload.password;
+
+    const user = yield User.findOne({email: request.payload.email}).exec()
+
+    if (!user) {
+      return reply(Boom.badRequest('No user with that e-mail'))
+    }
+    const isValid = yield bcrypt.compare(password, user.password)
+
+    if (isValid) {
+      return reply(user)
+    }
+    return reply(Boom.badRequest('Incorrect password and e-mail!'))
+  }
+
   server.route({
     method: 'POST',
     path: '/login',
     config: {
       auth: false,
       pre: [{
-        method: co.wrap(function* (request, reply) {
-          const password = request.payload.password;
-
-          const user = yield User.findOne({email: request.payload.email}).exec()
-
-          if (!user) {
-            return reply(Boom.badRequest('No user with that e-mail'))
-          }
-          const isValid = yield bcrypt.compare(password, user.password)
-
-          if (isValid) {
-            return reply(user)
-          }
-          return reply(Boom.badRequest('Incorrect password and e-mail!'))
-        }),
+        method: co.wrap(logInUser),
         assign: 'user'
       }],
-      handler: ctrl.login
+      handler: ctrl.login,
+      validate: {
+        payload: Joi.object({
+          email: Joi.string().email().required(),
+          password: Joi.string().required()
+        })
+      }
     }
   })
 
   server.route({
-    method: 'POST',
+    method: 'GET',
     path: '/logout',
     config: {
       handler: ctrl.logout

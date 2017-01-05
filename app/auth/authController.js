@@ -13,7 +13,7 @@ module.exports = function(User) {
     return yield bcrypt.hash(password, 10)
   }
 
-  function createToken(user) {
+  function* createToken(user) {
     let scopes
     if (user.admin) {
       scopes = 'admin'
@@ -25,7 +25,7 @@ module.exports = function(User) {
       scope: scopes
     }, secret, {
       algorithm: 'HS256',
-      expiresIn: "1h"
+      expiresIn: "7d"
     })
   }
 
@@ -38,13 +38,25 @@ module.exports = function(User) {
   function* login(request, reply) {
     // If the user's password is correct, we can issue a token.
     // If it was incorrect, the error will bubble up from the pre method
-    const token = createToken(request.pre.user)
+    const token = yield createToken(request.pre.user)
+    const user = yield request.pre.user.update({loggedIn: true}).exec()
+
+    if (!user) {
+      throw Boom.badRequest('derp')
+    }
     // If the user is saved successfully, issue a JWT
     return reply(request.pre.user).header("Authorization", token).code(201)
   }
 
   function* logout(request, reply) {
-    reply('logged out!')
+    const decoded = request.auth.credentials
+    const user = yield User.findOne({_id: decoded.id}).exec()
+    const updated = yield user.update({loggedIn: false}).exec()
+
+    if (updated.nModified === 0) {
+      throw Boom.badRequest('Failed to log user out')
+    }
+    return reply('Logged out!')
   }
 
   function* register(request, reply) {

@@ -8,7 +8,8 @@ module.exports = function () {
   const schema = new Schema({
     email: { type: String, required: true },
     password: { type: String, required: true },
-    admin: { type: Boolean, required: true }
+    admin: { type: Boolean, required: true },
+    loggedIn: {type: Boolean, required: true, default: false }
   }, {
     collection: 'Users',
     timestamps: true
@@ -17,7 +18,7 @@ module.exports = function () {
   function transform(doc, ret) {
     delete ret._id
     delete ret.__v
-    // delete ret.password
+    delete ret.password
     return ret
   }
 
