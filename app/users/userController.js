@@ -30,9 +30,17 @@ module.exports = function(User) {
   }
 
   return {
+    getCurrentUser: co.wrap(getCurrentUser),
     login: co.wrap(login),
     logout: co.wrap(logout),
     register: co.wrap(register)
+  }
+
+  function* getCurrentUser(request, reply) {
+    const decoded = request.auth.credentials
+    const user = yield User.findOne({ _id: decoded.id }).exec()
+
+    return reply(user).header("Authorization", request.auth.token)
   }
 
   function* login(request, reply) {
@@ -42,7 +50,7 @@ module.exports = function(User) {
     const user = yield request.pre.user.update({loggedIn: true}).exec()
 
     if (!user) {
-      throw Boom.badRequest('derp')
+      throw Boom.badRequest('Unable to log in user')
     }
     // If the user is saved successfully, issue a JWT
     return reply(request.pre.user).header("Authorization", token).code(201)

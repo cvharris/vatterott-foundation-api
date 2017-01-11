@@ -68,7 +68,7 @@ module.exports = function grantControllerFactory(Application, log) {
       let data = loadFiles(files)
       data = _.sortBy(data, f => f.created)
 
-      reply(data)
+      reply(data).header("Authorization", request.auth.token)
     })
 	}
 

@@ -13,6 +13,7 @@ module.exports = function (log, User) {
   // bring your own validation function
   const validate = function* (decoded, request, callback) {
     // do your checks to see if the person is valid
+    log.info('validating')
     if (!decoded.id) {
       return callback(null, false)
     }
@@ -31,7 +32,7 @@ module.exports = function (log, User) {
   const server = new Hapi.Server();
 
   server.connection({
-    port: 4200,
+    port: 3002,
     router: {
       isCaseSensitive: false,
       stripTrailingSlash: true
@@ -81,6 +82,13 @@ module.exports = function (log, User) {
     log.info('Server started:', {
       uri: server.info.uri
     })
+    // Log table of routes
+    /*
+    const table = server.table()
+    table[0].table.forEach(route => {
+      console.log(route.method, route.path, route.fingerprint);
+    })
+    */
   })()
 
   return server
