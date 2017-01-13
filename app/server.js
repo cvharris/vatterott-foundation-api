@@ -13,7 +13,6 @@ module.exports = function (log, User) {
   // bring your own validation function
   const validate = function* (decoded, request, callback) {
     // do your checks to see if the person is valid
-    log.info('validating')
     if (!decoded.id) {
       return callback(null, false)
     }

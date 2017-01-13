@@ -6,12 +6,24 @@ const Schema = mongoose.Schema
 module.exports = function () {
 
   const schema = new Schema({
-    fileName: String,
-    path: String,
-    uploaded: {
-      type: Date
-    }
-  }, { collection: 'Applications' })
+    userId: Schema.Types.ObjectId,
+    company: String,
+    contact: {
+      name: String,
+      phone: String
+    },
+    files: [{
+      fileName: String,
+      path: String,
+      uploaded: {
+        type: Date
+      }
+    }],
+    deadline: { type: Date }
+  }, {
+    collection: 'Applications',
+    timestamps: true
+  })
 
   function transform(doc, ret) {
     delete ret._id

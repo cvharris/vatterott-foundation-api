@@ -6,7 +6,7 @@ const Boom = require('boom')
 const jwt = require('jsonwebtoken')
 const secret = require('../../config.js')
 
-module.exports = function(User) {
+module.exports = function(log, User) {
 
   function* hashPassword(password) {
     // Generate a salt at level 10 strength
@@ -50,6 +50,9 @@ module.exports = function(User) {
     const user = yield request.pre.user.update({loggedIn: true}).exec()
 
     if (!user) {
+      log.info('Could not update user:', {
+        email: request.pre.user.email
+      })
       throw Boom.badRequest('Unable to log in user')
     }
     // If the user is saved successfully, issue a JWT
@@ -69,9 +72,9 @@ module.exports = function(User) {
 
   function* register(request, reply) {
     let user = new User()
-    user.email = request.payload.email
+    user.email = request.pre.creds.email
     user.admin = false
-    let hash = yield hashPassword(request.payload.password)
+    let hash = yield hashPassword(request.pre.creds.password)
 
     if (!hash) {
       throw Boom.badRequest('password failed to hash!')

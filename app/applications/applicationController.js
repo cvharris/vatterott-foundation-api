@@ -6,6 +6,11 @@ const path = require('path')
 const root = path.dirname(require.main.filename)
 const Sugar = require('sugar')
 const _ = require('lodash')
+const subMonths = require('date-fns/sub_months')
+const subQuarters = require('date-fns/sub_quarters')
+const endOfQuarter = require('date-fns/end_of_quarter')
+const startOfDay = require('date-fns/start_of_day')
+const endOfDay = require('date-fns/end_of_day')
 const fileDir = `${root}/grantApplications`
 
 module.exports = function grantControllerFactory(Application, log) {
@@ -60,16 +65,30 @@ module.exports = function grantControllerFactory(Application, log) {
   }
 
   function* list(request, reply) {
-    fs.readdir(fileDir, (err, files) => {
-      if (err) {
-        throw err
+    // Lists grant applications for the current deadline and the requesting user
+    const endDate = endOfDay(subMonths(endOfQuarter(new Date()), 1))
+    const startDate = startOfDay(subMonths(subQuarters(endOfQuarter(new Date()), 1), 1))
+
+    const application = yield Application.find({
+      userId: request.auth.credentials.id,
+      createdAt: {
+        $gte: startDate,
+        $lte: endDate
       }
-
-      let data = loadFiles(files)
-      data = _.sortBy(data, f => f.created)
-
-      reply(data).header("Authorization", request.auth.token)
     })
+
+    return reply(application)
+
+    // fs.readdir(fileDir, (err, files) => {
+    //   if (err) {
+    //     throw err
+    //   }
+    //
+    //   let data = loadFiles(files)
+    //   data = _.sortBy(data, f => f.created)
+    //
+    //   reply(data).header("Authorization", request.auth.token)
+    // })
 	}
 
 	function* upload(request, reply) {

@@ -5,13 +5,12 @@ const Joi = require('joi')
 const Boom = require('boom')
 const bcrypt = require('bcrypt')
 
-module.exports = function(server, userController, User) {
+module.exports = function(log, server, userController, User) {
   const ctrl = userController
   const root = 'user'
 
   function* verifyUniqueUser(request, reply) {
     const auth = decodeBasicAuth(request)
-    console.log(auth);
     const user = yield User.findOne({email: auth.email}).exec()
 
     if (user) {
@@ -20,7 +19,7 @@ module.exports = function(server, userController, User) {
         return;
       }
     }
-    return reply(request.payload);
+    return reply(auth);
   }
 
   function decodeBasicAuth(request) {
@@ -34,9 +33,10 @@ module.exports = function(server, userController, User) {
   }
 
   function* logInUser(request, reply) {
-    const password = request.payload.password;
+    const auth = decodeBasicAuth(request)
+    const password = auth.password;
 
-    const user = yield User.findOne({email: request.payload.email}).exec()
+    const user = yield User.findOne({email: auth.email}).exec()
 
     if (!user) {
       return reply(Boom.badRequest('No user with that e-mail'))
@@ -46,6 +46,10 @@ module.exports = function(server, userController, User) {
     if (isValid) {
       return reply(user)
     }
+
+    log.info('Incorrect password for user:', {
+      email: auth.email
+    })
     return reply(Boom.badRequest('Incorrect password and e-mail!'))
   }
 
@@ -58,7 +62,7 @@ module.exports = function(server, userController, User) {
   })
 
   server.route({
-    method: 'POST',
+    method: 'GET',
     path: `/${root}/login`,
     config: {
       auth: false,
@@ -68,10 +72,9 @@ module.exports = function(server, userController, User) {
       }],
       handler: ctrl.login,
       validate: {
-        payload: Joi.object({
-          email: Joi.string().email().required(),
-          password: Joi.string().required()
-        })
+        headers: Joi.object({
+          authorization: Joi.string().required()
+        }).options({ allowUnknown: true })
       }
     }
   })
@@ -89,9 +92,10 @@ module.exports = function(server, userController, User) {
     path: `/${root}/new`,
     config: {
       auth: false,
-      pre: [
-        { method: co.wrap(verifyUniqueUser) }
-      ],
+      pre: [{
+        method: co.wrap(verifyUniqueUser),
+        assign: 'creds'
+      }],
       handler: ctrl.register,
       validate: {
         headers: Joi.object({
