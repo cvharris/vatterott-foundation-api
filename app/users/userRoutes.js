@@ -62,7 +62,7 @@ module.exports = function(log, server, userController, User) {
   })
 
   server.route({
-    method: 'GET',
+    method: 'POST',
     path: `/${root}/login`,
     config: {
       auth: false,
@@ -88,7 +88,7 @@ module.exports = function(log, server, userController, User) {
   })
 
   server.route({
-    method: 'GET',
+    method: 'POST',
     path: `/${root}/new`,
     config: {
       auth: false,

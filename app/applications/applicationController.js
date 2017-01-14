@@ -4,6 +4,7 @@ const co = require('co')
 const fs = require('fs')
 const path = require('path')
 const root = path.dirname(require.main.filename)
+const Boom = require('boom')
 const Sugar = require('sugar')
 const _ = require('lodash')
 const subMonths = require('date-fns/sub_months')
@@ -11,7 +12,14 @@ const subQuarters = require('date-fns/sub_quarters')
 const endOfQuarter = require('date-fns/end_of_quarter')
 const startOfDay = require('date-fns/start_of_day')
 const endOfDay = require('date-fns/end_of_day')
+const format = require('date-fns/format')
 const fileDir = `${root}/grantApplications`
+const fileParams = [
+  'applicationForm',
+  'projectBudget',
+  'orgBudget',
+  'irsLetter'
+]
 
 module.exports = function grantControllerFactory(Application, log) {
 
@@ -35,9 +43,7 @@ module.exports = function grantControllerFactory(Application, log) {
     return data
   }
 
-  function writeFile(name, file) {
-    file.hapi.filename = `${Sugar.String.titleize(name)} - ${file.hapi.filename}`
-    // TODO: Detect if another file with the same name exists
+  function writeFile(file) {
     let newStream = fs.createWriteStream(`${fileDir}/${file.hapi.filename}`)
 
     file.on('error', (err) => {
@@ -57,6 +63,10 @@ module.exports = function grantControllerFactory(Application, log) {
     })
   }
 
+  function generateFilename(file, name) {
+    return `${Sugar.String.titleize(name)} - ${file.hapi.filename} - ${format(new Date(), 'YYYY-M-D h mA')}`
+  }
+
   return {
 		list: co.wrap(list),
     download: co.wrap(download),
@@ -69,7 +79,7 @@ module.exports = function grantControllerFactory(Application, log) {
     const endDate = endOfDay(subMonths(endOfQuarter(new Date()), 1))
     const startDate = startOfDay(subMonths(subQuarters(endOfQuarter(new Date()), 1), 1))
 
-    const application = yield Application.find({
+    const application = yield Application.findOne({
       userId: request.auth.credentials.id,
       createdAt: {
         $gte: startDate,
@@ -95,19 +105,32 @@ module.exports = function grantControllerFactory(Application, log) {
     let uploadedFiles = Object.keys(request.payload)
 
     if (uploadedFiles.length === 0) {
-      reply('no files uploaded!')
+      reply(Boom.badRequest('Nothing to upload!'))
     } else {
-      let result = []
-      for (let i = 0; i < uploadedFiles.length; i++) {
-        let writingResult = yield writeFile(uploadedFiles[i], request.payload[uploadedFiles[i]])
-        log.info(writingResult)
-        result.push(writingResult)
+      // try to find an already existing application
+      let appl
+      if (request.payload.id) {
+        appl = yield Application.findById(request.payload.id).exec()
+        console.log('Found an application!', appl);
+      } else {
+        appl = new Application(request.payload)
+        appl.userId = request.auth.credentials.id
       }
-      log.info('result', {
-        result: result
-      })
 
-      return reply(`${result.length} files successfully uploaded!`)
+      for (var i = 0; i < fileParams.length; i++) {
+        if (request.payload[fileParams[i]]) {
+          const file = request.payload[fileParams[i]]
+          file.hapi.filename = generateFilename(file, fileParams[i])
+          appl[fileParams[i]] = {
+            fileName: file.hapi.filename,
+            uploaded: true
+          }
+          yield writeFile(file)
+        }
+      }
+      yield appl.save()
+
+      return reply(appl)
     }
 	}
 

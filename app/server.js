@@ -38,7 +38,7 @@ module.exports = function (log, User) {
     },
     routes: {
       cors: {
-        headers: ['Accept', 'Authorization', 'Content-Type', 'If-None-Match'],
+        headers: ['Accept', 'Authorization', 'Content-Type', 'If-None-Match', 'enctype'],
         credentials: true
       }
     }

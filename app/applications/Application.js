@@ -8,18 +8,24 @@ module.exports = function () {
   const schema = new Schema({
     userId: Schema.Types.ObjectId,
     company: String,
-    contact: {
-      name: String,
-      phone: String
-    },
-    files: [{
+    contactName: String,
+    contactPhone: String,
+    applicationForm: {
       fileName: String,
-      path: String,
-      uploaded: {
-        type: Date
-      }
-    }],
-    deadline: { type: Date }
+      uploaded: Boolean
+    },
+    projectBudget: {
+      fileName: String,
+      uploaded: Boolean
+    },
+    orgBudget: {
+      fileName: String,
+      uploaded: Boolean
+    },
+    irsLetter: {
+      fileName: String,
+      uploaded: Boolean
+    }
   }, {
     collection: 'Applications',
     timestamps: true
